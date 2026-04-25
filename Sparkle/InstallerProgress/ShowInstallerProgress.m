@@ -20,13 +20,37 @@
     NSString *_installingUpdateTitle;
 }
 
+- (void)activateProgressWindow
+{
+    NSWindow *window = _statusController.window;
+    if (window == nil) {
+        return;
+    }
+
+    [window orderFrontRegardless];
+    [window makeKeyAndOrderFront:self];
+
+    if (@available(macOS 14, *)) {
+        [NSApp activate];
+    } else {
+        [NSApp activateIgnoringOtherApps:YES];
+    }
+}
+
+- (void)scheduleProgressWindowActivationAfterDelay:(NSTimeInterval)delay
+{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self activateProgressWindow];
+    });
+}
+
 - (void)loadLocalizationStringsFromHost:(SUHost *)host
 {
     // Try to retrieve localization strings from the old bundle if possible
     // We won't display these strings until installerProgressShouldDisplayWithHost:
     // (which will be after the update is trusted)
     // If we fail to load localizations in any way, we default to English
-    
+
 #if SPARKLE_COPY_LOCALIZATIONS
     NSBundle *hostSparkleBundle;
     {
@@ -38,16 +62,16 @@
         }
     }
 #endif
-    
+
     NSString *updatingString;
     {
         NSString *hostNameFromBundle = host.name;
         NSString *hostName = (hostNameFromBundle != nil) ? hostNameFromBundle : @"";
-        
+
 #if SPARKLE_COPY_LOCALIZATIONS
         {
             NSString *updatingFormatStringFromBundle = (hostSparkleBundle != nil) ? SULocalizedStringFromTableInBundle(@"Updating %@", @"Sparkle", hostSparkleBundle, nil) : nil;
-            
+
             if (updatingFormatStringFromBundle != nil) {
                 // Replacing the %@ will be a bit safer than using +[NSString stringWithFormat:]
                 updatingString = [updatingFormatStringFromBundle stringByReplacingOccurrencesOfString:@"%@" withString:hostName];
@@ -61,9 +85,9 @@
         }
 #endif
     }
-    
+
     _updatingString = updatingString;
-    
+
     NSString *cancelUpdateTitle;
 #if SPARKLE_COPY_LOCALIZATIONS
     {
@@ -76,7 +100,7 @@
     }
 #endif
     _cancelUpdateTitle = cancelUpdateTitle;
-    
+
     NSString *installingUpdateTitle;
 #if SPARKLE_COPY_LOCALIZATIONS
     {
@@ -88,19 +112,22 @@
         installingUpdateTitle = @"Installing update…";
     }
 #endif
-    
+
     _installingUpdateTitle = installingUpdateTitle;
 }
 
 - (void)installerProgressShouldDisplayWithHost:(SUHost *)host
 {
     _statusController = [[SUStatusController alloc] initWithHost:host windowTitle:_updatingString centerPointValue:nil minimizable:NO closable:NO];
-    
+
     [_statusController setButtonTitle:_cancelUpdateTitle target:nil action:nil isDefault:NO accessibilityIdentifier:@"SUStatusCancel"];
-    
+
     [_statusController beginActionWithTitle:_installingUpdateTitle maxProgressValue:0 statusText:@""];
-    
+
     [_statusController showWindow:self];
+    [self activateProgressWindow];
+    [self scheduleProgressWindowActivationAfterDelay:0.2];
+    [self scheduleProgressWindowActivationAfterDelay:0.8];
 }
 
 - (void)installerProgressShouldStop
