@@ -446,16 +446,10 @@ static const NSTimeInterval SUTerminationTimeDelay = 0.3;
             // Show app icon in the dock
             ProcessSerialNumber psn = { 0, kCurrentProcess };
             TransformProcessType(&psn, kProcessTransformToForegroundApplication);
+            [self->_application setActivationPolicy:NSApplicationActivationPolicyRegular];
             
             // Note: the application icon needs to be set after showing the icon in the dock
             self->_application.applicationIconImage = [SUApplicationInfo bestIconForHost:self->_oldHost];
-            
-            // Activate ourselves otherwise we will probably be in the background
-            if (@available(macOS 14, *)) {
-                [self->_application activate];
-            } else {
-                [self->_application activateIgnoringOtherApps:YES];
-            }
             
             [self->_delegate installerProgressShouldDisplayWithHost:self->_oldHost];
         }

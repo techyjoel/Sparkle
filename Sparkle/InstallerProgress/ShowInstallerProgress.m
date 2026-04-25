@@ -12,6 +12,8 @@
 #import "SUHost.h"
 #import "SULocalizations.h"
 
+__attribute__((used)) static const char *SUBreakdownProgressForegroundActivationMarkerString = "BREAKDOWN_SPARKLE_PROGRESS_FOREGROUND_ACTIVATION_V2";
+
 @implementation ShowInstallerProgress
 {
     SUStatusController *_statusController;
@@ -27,14 +29,11 @@
         return;
     }
 
-    [window orderFrontRegardless];
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
     [window makeKeyAndOrderFront:self];
 
-    if (@available(macOS 14, *)) {
-        [NSApp activate];
-    } else {
-        [NSApp activateIgnoringOtherApps:YES];
-    }
+    [[NSRunningApplication currentApplication] activateWithOptions:(NSApplicationActivateIgnoringOtherApps | NSApplicationActivateAllWindows)];
+    [window makeKeyAndOrderFront:self];
 }
 
 - (void)scheduleProgressWindowActivationAfterDelay:(NSTimeInterval)delay
@@ -126,8 +125,6 @@
 
     [_statusController showWindow:self];
     [self activateProgressWindow];
-    [self scheduleProgressWindowActivationAfterDelay:0.2];
-    [self scheduleProgressWindowActivationAfterDelay:0.8];
 }
 
 - (void)installerProgressShouldStop

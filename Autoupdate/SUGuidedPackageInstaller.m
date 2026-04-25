@@ -9,11 +9,17 @@
 #if SPARKLE_BUILD_PACKAGE_SUPPORT
 
 #import <sys/stat.h>
+#import <time.h>
 #import "SUGuidedPackageInstaller.h"
 #import "SUErrors.h"
+#import "SULog.h"
 
 
 #include "AppKitPrevention.h"
+
+__attribute__((used)) static const char *SUBreakdownPackageUpdateMarkerString = "BREAKDOWN_SPARKLE_PACKAGE_UPDATE_MARKER";
+static NSString * const SUBreakdownPackageUpdateMarkerDirectory = @"/private/var/run/breakdown";
+static NSString * const SUBreakdownPackageUpdateMarkerPath = @"/private/var/run/breakdown/com.breakdown.menu.sparkle-package-update";
 
 @implementation SUGuidedPackageInstaller
 {
@@ -42,6 +48,20 @@
 {
     // This command *must* be run as root
     NSString *installerPath = @"/usr/sbin/installer";
+    
+    // PackageKit does not reliably preserve task.environment across the
+    // privileged script boundary. Breakdown consumes this root-owned runtime
+    // marker to leave host-app relaunch ownership to Sparkle.
+    NSFileManager *fileManager = NSFileManager.defaultManager;
+    if (![fileManager createDirectoryAtPath:SUBreakdownPackageUpdateMarkerDirectory withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions: @(0700)} error:nil]) {
+        SULog(SULogLevelError, @"Failed to create Breakdown Sparkle package update marker directory at %@", SUBreakdownPackageUpdateMarkerDirectory);
+    }
+    NSString *marker = [NSString stringWithFormat:@"package_path=%@\ncreated_at=%lld\n", _packagePath, (long long)time(NULL)];
+    if (![marker writeToFile:SUBreakdownPackageUpdateMarkerPath atomically:YES encoding:NSUTF8StringEncoding error:nil]) {
+        SULog(SULogLevelError, @"Failed to write Breakdown Sparkle package update marker at %@", SUBreakdownPackageUpdateMarkerPath);
+    } else {
+        chmod(SUBreakdownPackageUpdateMarkerPath.fileSystemRepresentation, S_IRUSR | S_IWUSR);
+    }
     
     NSTask *task = [[NSTask alloc] init];
     task.launchPath = installerPath;
