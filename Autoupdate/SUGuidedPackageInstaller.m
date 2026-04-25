@@ -46,8 +46,9 @@
     NSTask *task = [[NSTask alloc] init];
     task.launchPath = installerPath;
     task.arguments = @[@"-pkg", _packagePath, @"-target", @"/"];
-    // Set the $HOME and $USER variables so pre/post install scripts reference the correct user environment
-    task.environment = @{@"HOME": _homeDirectory, @"USER": _userName};
+    // Set the $HOME and $USER variables so pre/post install scripts reference the correct user environment.
+    // Breakdown uses the Sparkle marker to avoid racing Sparkle's own app relaunch during package updates.
+    task.environment = @{@"HOME": _homeDirectory, @"USER": _userName, @"BREAKDOWN_SPARKLE_PACKAGE_UPDATE": @"1"};
     task.standardError = nil;
     task.standardOutput = nil;
     
