@@ -35,6 +35,17 @@ static const NSTimeInterval SUTerminationTimeDelay = 0.3;
 @end
 #endif
 
+static void SUBreakdownActivateProgressApplication(NSApplication *application)
+{
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    // The progress app is launched as an LSUIElement launchd job. On current
+    // macOS, NSRunningApplication activation is insufficient for that path;
+    // the NSApplication activation API is what makes the progress window frontmost.
+    [application activateIgnoringOtherApps:YES];
+#pragma clang diagnostic pop
+}
+
 @interface InstallerProgressAppController () <NSApplicationDelegate, SPUInstallerAgentProtocol>
 @end
 
@@ -450,6 +461,8 @@ static const NSTimeInterval SUTerminationTimeDelay = 0.3;
             
             // Note: the application icon needs to be set after showing the icon in the dock
             self->_application.applicationIconImage = [SUApplicationInfo bestIconForHost:self->_oldHost];
+
+            SUBreakdownActivateProgressApplication(self->_application);
             
             [self->_delegate installerProgressShouldDisplayWithHost:self->_oldHost];
         }

@@ -12,7 +12,7 @@
 #import "SUHost.h"
 #import "SULocalizations.h"
 
-__attribute__((used)) static const char *SUBreakdownProgressForegroundActivationMarkerString = "BREAKDOWN_SPARKLE_PROGRESS_FOREGROUND_ACTIVATION_V2";
+__attribute__((used)) static const char *SUBreakdownProgressForegroundActivationMarkerString = "BREAKDOWN_SPARKLE_PROGRESS_FOREGROUND_ACTIVATION_V3";
 
 @implementation ShowInstallerProgress
 {
@@ -30,9 +30,12 @@ __attribute__((used)) static const char *SUBreakdownProgressForegroundActivation
     }
 
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-    [window makeKeyAndOrderFront:self];
 
-    [[NSRunningApplication currentApplication] activateWithOptions:(NSApplicationActivateIgnoringOtherApps | NSApplicationActivateAllWindows)];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    [NSApp activateIgnoringOtherApps:YES];
+#pragma clang diagnostic pop
+
     [window makeKeyAndOrderFront:self];
 }
 
